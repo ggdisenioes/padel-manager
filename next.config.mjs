@@ -1,18 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Eliminamos 'output: standalone' para que Vercel lo maneje automáticamente
-  
+  // Mantenemos la optimización de imágenes
   images: {
     unoptimized: true,
   },
   
-  // Ignorar errores estrictos para asegurar que suba
+  // Mantenemos ignorar errores de TypeScript (esto sí suele permitirse)
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  
+  // 🛑 HE BORRADO LA SECCIÓN 'eslint' QUE CAUSABA EL ERROR
 };
 
 export default nextConfig;
