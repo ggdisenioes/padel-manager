@@ -1,166 +1,160 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+// CORRECCIÓN: Usamos '../..' (2 niveles) en lugar de '../../..' (3 niveles)
 import { supabase } from '../../lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Card from '../../components/Card';
+import Badge from '../../components/Badge';
 
-export default function CreatePlayer() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+export default function PlayerProfile() {
+  const params = useParams();
+  const id = params.id;
   
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    level: 4.0,
-    avatar_url: '' // Guardaremos la URL aquí
-  });
+  const [player, setPlayer] = useState<any>(null);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [stats, setStats] = useState({ played: 0, won: 0, winRate: 0 });
+  const [loading, setLoading] = useState(true);
 
-  // Función para subir la imagen
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      if (!e.target.files || e.target.files.length === 0) {
-        throw new Error('Por favor selecciona una imagen.');
-      }
-
-      const file = e.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // 1. Subir al Storage 'avatars'
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // 2. Obtener la URL pública
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: pData } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', id)
+        .single();
       
-      // 3. Guardar URL en el estado
-      setFormData({ ...formData, avatar_url: data.publicUrl });
+      if (pData) {
+        setPlayer(pData);
+        
+        const { data: mData } = await supabase
+            .from('matches')
+            .select('*, tournaments(name)')
+            .or(`player_1_a.eq.${pData.name},player_1_b.eq.${pData.name},player_2_a.eq.${pData.name},player_2_b.eq.${pData.name}`)
+            .order('id', { ascending: false });
 
-    } catch (error: any) {
-      alert('Error subiendo imagen: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const { error } = await supabase
-      .from('players')
-      .insert([formData]);
-
-    if (error) {
-      alert('Error: ' + error.message);
+        if (mData) {
+            setMatches(mData);
+            calculateStats(mData, pData.name);
+        }
+      }
       setLoading(false);
-    } else {
-      router.push('/players');
-      router.refresh();
-    }
+    };
+
+    if (id) fetchData();
+  }, [id]);
+
+  const calculateStats = (matchList: any[], playerName: string) => {
+      let played = 0;
+      let won = 0;
+
+      matchList.forEach(m => {
+          if (m.winner === 'pending') return;
+          played++;
+          const isTeamA = m.player_1_a === playerName || m.player_1_b === playerName;
+          if ((isTeamA && m.winner === 'A') || (!isTeamA && m.winner === 'B')) {
+              won++;
+          }
+      });
+
+      setStats({
+          played,
+          won,
+          winRate: played > 0 ? Math.round((won / played) * 100) : 0
+      });
   };
+
+  if (loading) return <div className="p-10 text-center">Cargando perfil...</div>;
+  if (!player) return <div className="p-10 text-center">Jugador no encontrado</div>;
 
   return (
     <main className="flex-1 overflow-y-auto p-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">Nuevo Jugador</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 flex flex-col md:flex-row items-center gap-6">
+            <div className="w-28 h-28 rounded-full overflow-hidden shadow-lg border-4 border-white bg-gray-100 flex items-center justify-center shrink-0">
+                {player.avatar_url ? (
+                    <img src={player.avatar_url} alt={player.name} className="w-full h-full object-cover" />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold">
+                        {player.name.charAt(0).toUpperCase()}
+                    </div>
+                )}
+            </div>
 
-        <Card className="max-w-xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* FOTO DE PERFIL */}
-            <div className="flex flex-col items-center mb-6 gap-4">
-                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 relative">
-                    {formData.avatar_url ? (
-                        // Si hay foto, la mostramos
-                        <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                        // Si no, mostramos un icono
-                        <span className="text-4xl text-gray-300">📷</span>
-                    )}
-                    {uploading && (
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-xs">
-                            Subiendo...
-                        </div>
-                    )}
+            <div className="flex-1 text-center md:text-left">
+                <h2 className="text-3xl font-bold text-gray-800">{player.name}</h2>
+                <p className="text-gray-500 mb-2">{player.email || 'Sin email registrado'}</p>
+                <div className="flex gap-2 justify-center md:justify-start">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">Nivel {player.level}</span>
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-bold">🏆 {player.points || 0} Puntos</span>
                 </div>
-                
-                <label className="cursor-pointer bg-blue-50 text-blue-600 px-4 py-2 rounded text-sm font-bold hover:bg-blue-100 transition">
-                    Subir Foto
-                    <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleImageUpload} 
-                        disabled={uploading}
-                        className="hidden" 
-                    />
-                </label>
             </div>
-
-            {/* Nombre */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-              <input 
-                type="text" required
-                className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej: Ale Galán"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-              />
+            
+            <div className="flex gap-8 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-8">
+                <div className="text-center">
+                    <p className="text-2xl font-bold text-gray-800">{stats.played}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Jugados</p>
+                </div>
+                <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{stats.won}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Ganados</p>
+                </div>
+                <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-600">{stats.winRate}%</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Efectividad</p>
+                </div>
             </div>
+        </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email (Opcional)</label>
-              <input 
-                type="email"
-                className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
-            </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Historial de Partidos</h3>
 
-            {/* Nivel */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nivel de Juego (1.0 - 7.0)
-              </label>
-              <div className="flex items-center gap-4">
-                <input 
-                    type="range" min="1" max="7" step="0.5"
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    value={formData.level}
-                    onChange={(e) => setFormData({...formData, level: parseFloat(e.target.value)})}
-                />
-                <span className="text-xl font-bold text-blue-600 w-12 text-center">
-                    {formData.level}
-                </span>
-              </div>
-            </div>
+        <div className="space-y-4">
+            {matches.length === 0 ? (
+                <p className="text-gray-500 italic">Este jugador aún no ha disputado partidos.</p>
+            ) : (
+                matches.map((m) => {
+                    const isWinner = (m.winner === 'A' && (m.player_1_a === player.name || m.player_1_b === player.name)) ||
+                                     (m.winner === 'B' && (m.player_2_a === player.name || m.player_2_b === player.name));
+                    
+                    const resultColor = m.winner === 'pending' ? 'border-l-gray-300' : isWinner ? 'border-l-green-500' : 'border-l-red-500';
 
-            <div className="flex gap-4 pt-4">
-              <button 
-                type="button" onClick={() => router.back()}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
-              >
-                Cancelar
-              </button>
-              <button 
-                type="submit" disabled={loading || uploading}
-                className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Guardando...' : 'Guardar Jugador'}
-              </button>
-            </div>
-
-          </form>
-        </Card>
+                    return (
+                        <Card key={m.id} className={`border-l-4 ${resultColor} py-4`}>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs text-gray-400 font-bold uppercase mb-1">
+                                        {m.tournaments?.name} • {m.round_name}
+                                    </p>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <span className={m.winner === 'A' ? 'font-bold text-gray-900' : 'text-gray-600'}>
+                                            {m.player_1_a} / {m.player_1_b}
+                                        </span>
+                                        <span className="text-gray-300 font-bold">VS</span>
+                                        <span className={m.winner === 'B' ? 'font-bold text-gray-900' : 'text-gray-600'}>
+                                            {m.player_2_a} / {m.player_2_b}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                    {m.winner === 'pending' ? (
+                                        <Badge label="Pendiente" type="warning" />
+                                    ) : (
+                                        <div>
+                                            <span className={`text-lg font-bold font-mono ${isWinner ? 'text-green-600' : 'text-red-600'}`}>
+                                                {isWinner ? 'VICTORIA' : 'DERROTA'}
+                                            </span>
+                                            <p className="text-xs text-gray-500 font-mono">
+                                                {m.score_set1} {m.score_set2} {m.score_set3}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </Card>
+                    );
+                })
+            )}
+        </div>
     </main>
   );
 }
