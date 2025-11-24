@@ -1,18 +1,14 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Esto ayuda si tu hosting no optimiza imágenes automáticamente
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  // Mantenemos esto para que las imágenes funcionen en cualquier hosting
   images: {
     unoptimized: true,
   },
   
-  // 🚨 SALVAVIDAS: Ignorar errores de tipado para que deje hacer el Build
+  // Esto sí suele permitirse aún para ignorar errores de TypeScript
   typescript: {
     ignoreBuildErrors: true,
-  },
-  
-  // 🚨 SALVAVIDAS: Ignora advertencias de estilo (linting) durante el Build
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 };
 
