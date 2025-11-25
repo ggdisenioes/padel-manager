@@ -4,7 +4,8 @@ const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}", // <--- ESTA LÍNEA ES LA CRÍTICA
+    "./app/**/*.{js,ts,jsx,tsx,mdx}", // <--- ESTA ES LA LÍNEA MÁS IMPORTANTE
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
