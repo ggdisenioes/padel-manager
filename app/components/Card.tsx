@@ -1,4 +1,7 @@
+"use client";
+
 import React from 'react';
+import { motion } from 'framer-motion';
 
 interface CardProps {
   children: React.ReactNode;
@@ -8,14 +11,19 @@ interface CardProps {
 
 export default function Card({ children, title, className = "" }: CardProps) {
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-100 p-6 ${className}`}>
-      {/* Si le pasamos un título, lo muestra. Si no, no muestra nada. */}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} // Empieza invisible y un poco abajo
+      animate={{ opacity: 1, y: 0 }}  // Sube y aparece suavemente
+      transition={{ duration: 0.4, ease: "easeOut" }} // Duración de la magia
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 ${className}`}
+    >
+      {/* Si le pasamos un título, lo muestra */}
       {title && (
-        <h3 className="text-xl font-bold text-gray-800 mb-4">{title}</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">{title}</h3>
       )}
       
-      {/* Aquí va el contenido que metamos dentro de la Card */}
+      {/* Contenido */}
       <div>{children}</div>
-    </div>
+    </motion.div>
   );
 }
