@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase'; // Ajusta los puntos si es necesario (3 niveles)
 import { useRouter, useParams } from 'next/navigation';
-import Sidebar from '../../components/Sidebar';
+// Borramos import Sidebar
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Link from 'next/link';
@@ -26,7 +26,7 @@ export default function TournamentDetail() {
         .from('matches')
         .select('*')
         .eq('tournament_id', id)
-        .order('id', { ascending: true }); // Ordenamos por ID para mantener orden de creación
+        .order('id', { ascending: true });
       
       setMatches(mData || []);
       setLoading(false);
@@ -43,20 +43,18 @@ export default function TournamentDetail() {
     return acc;
   }, {});
 
-  // Definimos un orden lógico para las columnas del Bracket
+  // Orden lógico de rondas
   const roundOrder = ['Fase de Grupos', 'Octavos', 'Cuartos', 'Semifinal', 'Final'];
   
-  // Ordenamos las rondas presentes según nuestro orden lógico
   const sortedRounds = Object.keys(matchesByRound).sort((a, b) => {
     return roundOrder.indexOf(a) - roundOrder.indexOf(b);
   });
 
-  if (loading) return <div className="p-10">Cargando cuadro...</div>;
+  if (loading) return <div className="p-10 text-center">Cargando cuadro...</div>;
 
+  // Usamos <main> directamente, sin Sidebar ni div flex extra
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+    <main className="flex-1 overflow-y-auto p-8">
         
         {/* Cabecera del Torneo */}
         <div className="mb-8 flex justify-between items-end">
@@ -121,7 +119,6 @@ export default function TournamentDetail() {
                 ))}
             </div>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
