@@ -3,77 +3,136 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
-// Borramos import Sidebar
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchMatches = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('matches')
       .select('*, tournaments ( name )')
       .order('id', { ascending: false });
-    if (!error) setMatches(data || []);
+    if (data) setMatches(data);
     setLoading(false);
   };
 
-  useEffect(() => { fetchMatches(); }, []);
+  useEffect(() => {
+    // 1. Carga inicial y chequeo de admin
+    const checkUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email === 'admin@padel.com') setIsAdmin(true);
+        fetchMatches();
+    };
+    checkUser();
+
+    // 2. Suscripción a cambios en tiempo real (Live)
+    const channel = supabase.channel('partidos-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, fetchMatches)
+        .subscribe();
+        
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   return (
-    <main className="flex-1 overflow-y-auto p-8">
-      <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-800">Partidos en Vivo</h2>
-          <Link href="/matches/create" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition shadow-sm font-bold flex items-center gap-2">
-              <span>+</span> Nuevo Partido
-          </Link>
+    <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24"> {/* Padding extra abajo para móviles */}
+      
+      {/* Encabezado Responsive */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800">En Vivo</h2>
+            {/* Efecto de luz roja parpadeante */}
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+          </div>
+          
+          {isAdmin && (
+            <Link 
+                href="/matches/create" 
+                className="w-full sm:w-auto bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 shadow-sm font-bold flex justify-center items-center gap-2 transition transform active:scale-95"
+            >
+                <span>+</span> Nuevo Partido
+            </Link>
+          )}
       </div>
 
       {loading ? (
-          <div className="flex justify-center p-10"><p className="text-gray-500 animate-pulse">Cargando partidos...</p></div>
+          <div className="flex justify-center p-10"><p className="text-gray-500 animate-pulse">Conectando al satélite...</p></div>
       ) : (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4">
               {matches.length === 0 ? (
-                  <Card className="text-center py-10 border-dashed border-2 border-gray-200">
-                      <p className="text-gray-500 mb-4 text-lg">No hay partidos programados.</p>
-                      <Link href="/matches/create" className="text-green-600 font-bold hover:underline text-lg">¡Programa el primero!</Link>
-                  </Card>
+                  <div className="text-center py-12 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+                      <p className="text-gray-500 mb-2">No hay partidos en pista.</p>
+                  </div>
               ) : (
                   matches.map((m) => (
-                      <Card key={m.id} className="relative overflow-hidden border-t-4 border-t-blue-500 hover:shadow-lg transition duration-200">
-                          <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-3">
+                      <Card key={m.id} className="relative overflow-hidden border-t-4 border-t-blue-500 p-4 shadow-sm hover:shadow-md transition">
+                          
+                          {/* Cabecera de la Tarjeta */}
+                          <div className="flex justify-between items-start mb-4 border-b border-gray-100 pb-2">
                               <div>
-                                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-2 py-1 rounded">{m.tournaments?.name || 'Torneo Desconocido'}</span>
-                                  <div className="flex gap-3 mt-2 text-sm text-gray-500">
+                                  <span className="text-[10px] md:text-xs font-bold text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded tracking-wider">
+                                    {m.tournaments?.name || 'Amistoso'}
+                                  </span>
+                                  <div className="flex gap-3 mt-2 text-xs text-gray-500">
                                       <span>📍 {m.round_name}</span>
                                       {m.court && <span>🏟️ {m.court}</span>}
-                                      {m.start_time && <span>🕒 {new Date(m.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
                                   </div>
                               </div>
-                              <Badge label={m.winner === 'pending' ? 'En Juego' : 'Finalizado'} type={m.winner === 'pending' ? 'success' : 'neutral'} />
+                              <Badge label={m.winner === 'pending' ? 'En Juego' : 'Final'} type={m.winner === 'pending' ? 'success' : 'neutral'} />
                           </div>
-                          <div className="flex items-center justify-between px-2">
-                              <div className="text-left w-5/12">
-                                  <p className={`font-bold text-lg ${m.winner === 'A' ? 'text-green-600' : 'text-gray-800'}`}>{m.player_1_a} {m.winner === 'A' && '👑'}</p>
-                                  <p className={`font-bold text-lg ${m.winner === 'A' ? 'text-green-600' : 'text-gray-800'}`}>{m.player_1_b}</p>
+                          
+                          {/* Enfrentamiento (Diseño flexible para nombres largos) */}
+                          <div className="flex items-center justify-between gap-2">
+                              
+                              {/* Equipo A */}
+                              <div className="text-left flex-1 min-w-0">
+                                  <p className={`font-bold text-sm md:text-lg truncate leading-tight ${m.winner === 'A' ? 'text-green-600' : 'text-gray-800'}`}>
+                                    {m.player_1_a}
+                                  </p>
+                                  <p className={`font-bold text-sm md:text-lg truncate leading-tight ${m.winner === 'A' ? 'text-green-600' : 'text-gray-800'}`}>
+                                    {m.player_1_b}
+                                  </p>
                               </div>
-                              <div className="text-center w-2/12 flex flex-col items-center justify-center">
+                              
+                              {/* Score Central */}
+                              <div className="text-center px-2 shrink-0">
                                   {m.winner === 'pending' ? (
-                                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-black text-xl italic border-2 border-white shadow-sm">VS</div>
+                                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-black text-sm border-2 border-white shadow-sm">
+                                        VS
+                                      </div>
                                   ) : (
-                                      <div className="bg-gray-800 text-white px-3 py-1 rounded font-mono font-bold tracking-widest text-sm md:text-base shadow-inner">{m.score_set1} {m.score_set2} {m.score_set3}</div>
+                                      <div className="bg-gray-800 text-white px-3 py-1 rounded font-mono font-bold text-xs md:text-sm shadow-inner whitespace-nowrap">
+                                        {m.score_set1} {m.score_set2} {m.score_set3}
+                                      </div>
                                   )}
                               </div>
-                              <div className="text-right w-5/12">
-                                  <p className={`font-bold text-lg ${m.winner === 'B' ? 'text-green-600' : 'text-gray-800'}`}>{m.winner === 'B' && '👑'} {m.player_2_a}</p>
-                                  <p className={`font-bold text-lg ${m.winner === 'B' ? 'text-green-600' : 'text-gray-800'}`}>{m.player_2_b}</p>
+
+                              {/* Equipo B */}
+                              <div className="text-right flex-1 min-w-0">
+                                  <p className={`font-bold text-sm md:text-lg truncate leading-tight ${m.winner === 'B' ? 'text-green-600' : 'text-gray-800'}`}>
+                                    {m.player_2_a}
+                                  </p>
+                                  <p className={`font-bold text-sm md:text-lg truncate leading-tight ${m.winner === 'B' ? 'text-green-600' : 'text-gray-800'}`}>
+                                    {m.player_2_b}
+                                  </p>
                               </div>
                           </div>
-                          {m.winner === 'pending' && (
-                              <div className="mt-6 text-center border-t border-gray-100 pt-4">
-                                  <Link href={`/matches/score/${m.id}`} className="inline-flex items-center gap-2 text-sm bg-blue-50 text-blue-700 py-2 px-6 rounded-full hover:bg-blue-100 font-bold border border-blue-200 transition transform hover:scale-105">✏️ Actualizar Marcador</Link>
+                          
+                          {/* Botón Admin (Full width en móvil) */}
+                          {m.winner === 'pending' && isAdmin && (
+                              <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                                  <Link 
+                                    href={`/matches/score/${m.id}`} 
+                                    className="block w-full bg-blue-50 text-blue-700 py-3 rounded-lg font-bold text-sm hover:bg-blue-100 transition border border-blue-100"
+                                  >
+                                    ✏️ Actualizar Marcador
+                                  </Link>
                               </div>
                           )}
                       </Card>
