@@ -1,15 +1,14 @@
-// app/tournaments/edit/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase'; // Ajusta la ruta según necesites subir niveles
+import { supabase } from '../../../lib/supabase';
 import { useRouter, useParams } from 'next/navigation';
-import Sidebar from '../../../components/Sidebar';
+// Borramos import Sidebar
 import Card from '../../../components/Card';
 
 export default function EditTournament() {
   const router = useRouter();
-  const params = useParams(); // Aquí capturamos el ID de la URL
+  const params = useParams(); 
   const id = params.id;
 
   const [loading, setLoading] = useState(true);
@@ -27,7 +26,7 @@ export default function EditTournament() {
         .from('tournaments')
         .select('*')
         .eq('id', id)
-        .single(); // .single() porque solo esperamos uno
+        .single();
 
       if (error) {
         alert('Error cargando torneo');
@@ -59,7 +58,7 @@ export default function EditTournament() {
         start_date: formData.start_date,
         status: formData.status
       })
-      .eq('id', id); // IMPORTANTE: Solo actualiza el que tenga este ID
+      .eq('id', id);
 
     if (error) {
       alert('Error al actualizar: ' + error.message);
@@ -70,17 +69,15 @@ export default function EditTournament() {
     }
   };
 
+  // Usamos <main> directamente para evitar doble sidebar
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+    <main className="flex-1 overflow-y-auto p-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-6">Editar Torneo</h2>
 
         {loading ? <p>Cargando datos...</p> : (
           <Card className="max-w-2xl">
             <form onSubmit={handleUpdate} className="space-y-6">
               
-              {/* Nombre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input 
@@ -91,7 +88,6 @@ export default function EditTournament() {
                 />
               </div>
 
-              {/* Categoría */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
                 <select 
@@ -107,7 +103,6 @@ export default function EditTournament() {
                 </select>
               </div>
 
-              {/* Estado (Nuevo campo para editar) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                 <select 
@@ -121,7 +116,6 @@ export default function EditTournament() {
                 </select>
               </div>
 
-              {/* Fecha */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
                 <input 
@@ -151,7 +145,6 @@ export default function EditTournament() {
             </form>
           </Card>
         )}
-      </main>
-    </div>
+    </main>
   );
 }
