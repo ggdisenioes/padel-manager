@@ -27,48 +27,56 @@ export default function LoginPage() {
         : error.message);
       setLoading(false);
     } else {
-      // Login exitoso, vamos al panel
       router.push('/');
-      router.refresh(); // Refresca para actualizar la Sidebar
+      router.refresh();
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900">
-      <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+    <div className="flex items-center justify-center min-h-screen bg-gray-900 relative overflow-hidden">
+      
+      {/* Fondo decorativo sutil */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+         <div className="absolute right-0 top-0 w-64 h-64 bg-[#ccff00] rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+      </div>
+
+      <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md z-10 border-t-4 border-[#ccff00]">
         
         <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold tracking-wider text-gray-800">
-            PADEL<span className="text-[#ccff00] bg-gray-800 px-1 rounded">MGR</span>
+            <h1 className="text-4xl font-extrabold text-gray-900 italic tracking-tight">
+            TWINCO
             </h1>
-            <p className="text-gray-500 mt-2">Acceso a la plataforma</p>
+            <span className="inline-block bg-gray-900 text-[#ccff00] px-2 py-0.5 text-xs font-bold tracking-[0.2em] uppercase rounded-sm mt-1">
+                Pádel Manager
+            </span>
+            <p className="text-gray-400 text-sm mt-4">Bienvenido al club</p>
         </div>
 
         {errorMsg && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 text-sm">
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 mb-6 text-sm rounded-r">
                 {errorMsg}
             </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email</label>
                 <input 
                     type="email" 
                     required
-                    className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="admin@padel.com"
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#ccff00] focus:border-transparent outline-none transition bg-gray-50"
+                    placeholder="usuario@twinco.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Contraseña</label>
                 <input 
                     type="password" 
                     required
-                    className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#ccff00] focus:border-transparent outline-none transition bg-gray-50"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -78,14 +86,16 @@ export default function LoginPage() {
             <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-gray-800 text-white font-bold py-3 rounded hover:bg-gray-700 transition duration-200 disabled:opacity-50"
+                className="w-full bg-gray-900 text-white font-bold py-3.5 rounded-lg hover:bg-black transition duration-200 disabled:opacity-70 shadow-lg"
             >
-                {loading ? 'Entrando...' : 'Iniciar Sesión'}
+                {loading ? 'Accediendo...' : 'Iniciar Sesión'}
             </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-gray-400">
-            <p>¿No tienes cuenta? Contacta con el club.</p>
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400">
+                Desarrollado por <a href="https://ggdisenio.es" target="_blank" className="text-gray-600 hover:text-[#aacc00] font-bold transition">GGDisenio.es</a>
+            </p>
         </div>
       </div>
     </div>

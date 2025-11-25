@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
+import { useRouter } from 'next/navigation'; // Importamos el router para redirigir
 import Card from './components/Card';
 import Badge from './components/Badge';
 import Link from 'next/link';
 
 export default function Home() {
+  const router = useRouter();
   const [stats, setStats] = useState({
     tournamentsCount: 0,
     playersCount: 0,
@@ -15,31 +17,56 @@ export default function Home() {
   
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true); // Nuevo estado para la espera de auth
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      const { count: tCount } = await supabase.from('tournaments').select('*', { count: 'exact', head: true });
-      const { count: pCount } = await supabase.from('players').select('*', { count: 'exact', head: true });
-      const { count: mCount } = await supabase.from('matches').select('*', { count: 'exact', head: true }).eq('winner', 'pending');
+    const initPage = async () => {
+      // 1. 🕵️‍♂️ EL PORTERO: Verificamos si hay usuario
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Si no hay usuario, ¡fuera! Al login.
+        router.push('/login');
+        return;
+      }
 
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('*, tournaments(name)')
-        .order('start_time', { ascending: true })
-        .limit(5);
-
-      setStats({
-        tournamentsCount: tCount || 0,
-        playersCount: pCount || 0,
-        pendingMatches: mCount || 0
-      });
-
-      if (matches) setRecentMatches(matches);
-      setLoading(false);
+      // Si hay usuario, dejamos de comprobar y cargamos los datos
+      setCheckingAuth(false);
+      loadDashboardData();
     };
 
-    loadDashboardData();
-  }, []);
+    initPage();
+  }, [router]);
+
+  const loadDashboardData = async () => {
+    const { count: tCount } = await supabase.from('tournaments').select('*', { count: 'exact', head: true });
+    const { count: pCount } = await supabase.from('players').select('*', { count: 'exact', head: true });
+    const { count: mCount } = await supabase.from('matches').select('*', { count: 'exact', head: true }).eq('winner', 'pending');
+
+    const { data: matches } = await supabase
+      .from('matches')
+      .select('*, tournaments(name)')
+      .order('start_time', { ascending: true })
+      .limit(5);
+
+    setStats({
+      tournamentsCount: tCount || 0,
+      playersCount: pCount || 0,
+      pendingMatches: mCount || 0
+    });
+
+    if (matches) setRecentMatches(matches);
+    setLoading(false);
+  };
+
+  // Mientras el "portero" comprueba, mostramos una pantalla blanca o de carga
+  if (checkingAuth) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <p className="text-gray-400 animate-pulse">Verificando acceso...</p>
+      </div>
+    );
+  }
 
   return (
     <main className="flex-1 overflow-y-auto p-8">

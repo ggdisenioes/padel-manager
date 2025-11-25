@@ -11,7 +11,6 @@ export default function Sidebar() {
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Detectar usuario al cargar
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -22,7 +21,6 @@ export default function Sidebar() {
     };
     checkUser();
 
-    // Escuchar cambios de sesión
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
        if (event === 'SIGNED_OUT') {
          setUser(null);
@@ -53,11 +51,15 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col h-screen shrink-0 transition-all duration-300">
-      {/* Logo */}
-      <div className="h-16 flex items-center justify-center border-b border-gray-700">
-        <h1 className="text-2xl font-bold tracking-wider">
-          PADEL<span className="text-[#ccff00]">MGR</span>
+      
+      {/* LOGO TWINCO */}
+      <div className="h-20 flex items-center justify-center border-b border-gray-700 flex-col p-4">
+        <h1 className="text-2xl font-extrabold tracking-tighter italic">
+          TWINCO
         </h1>
+        <span className="text-[#ccff00] text-[10px] font-bold tracking-[0.2em] uppercase">
+            Pádel Manager
+        </span>
       </div>
 
       {/* Navegación */}
@@ -85,7 +87,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer Usuario */}
+      {/* Footer Usuario + Créditos */}
       <div className="p-4 border-t border-gray-700 bg-gray-800/50">
         {user ? (
             <div className="flex flex-col gap-3">
@@ -107,6 +109,13 @@ export default function Sidebar() {
                  <Link href="/login" className="text-sm text-[#ccff00] hover:underline">Iniciar Sesión &rarr;</Link>
             </div>
         )}
+
+        {/* CRÉDITOS DEL DESARROLLADOR */}
+        <div className="mt-4 pt-3 border-t border-gray-700 text-center">
+            <p className="text-[10px] text-gray-500">
+                Desarrollado por <a href="https://ggdisenio.es" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#ccff00] transition font-bold">GGDisenio.es</a>
+            </p>
+        </div>
       </div>
     </aside>
   );
